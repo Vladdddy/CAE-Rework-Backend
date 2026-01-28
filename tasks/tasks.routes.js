@@ -41,7 +41,11 @@ router.post("/", async (req, res) => {
             .input("extradetail", sql.NVarChar, task.extradetail)
             .input("status", sql.NVarChar, task.status)
             .input("date", sql.Date, task.date)
-            .input("time", sql.NVarChar, task.time).query(`
+            .input("time", sql.NVarChar, task.time)
+            .input("type", sql.NVarChar, task.type)
+            .input("start_date", sql.Date, task.start_date)
+            .input("end_date", sql.Date, task.end_date)
+            .input("selected_days", sql.NVarChar, task.selected_days).query(`
       INSERT INTO dbo.Task (
         TITLE,
         DESCRIPTION,
@@ -52,7 +56,11 @@ router.post("/", async (req, res) => {
         EXTRADETAIL,
         STATUS,
         DATE,
-        TIME
+        TIME,
+        TYPE,
+        START_DATE,
+        END_DATE,
+        SELECTED_DAYS
       )
       VALUES (
         @title,
@@ -64,7 +72,11 @@ router.post("/", async (req, res) => {
         @extradetail,
         @status,
         @date,
-        @time
+        @time,
+        @type,
+        @start_date,
+        @end_date,
+        @selected_days
       );
       SELECT SCOPE_IDENTITY() AS id;
     `);
