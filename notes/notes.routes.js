@@ -37,6 +37,19 @@ router.post("/:id", async (req, res) => {
             return res.status(503).json({ error: "Database not connected" });
         }
 
+        // First, check if the task exists
+        const taskCheck = await pool
+            .request()
+            .input("taskId", sql.Int, id)
+            .query(`SELECT ID FROM dbo.Task WHERE ID = @taskId`);
+
+        if (taskCheck.recordset.length === 0) {
+            return res.status(404).json({
+                error: "Task not found",
+                details: `Task with ID ${id} does not exist`,
+            });
+        }
+
         const result = await pool
             .request()
             .input("taskId", sql.Int, id)

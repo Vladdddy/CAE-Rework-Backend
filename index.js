@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import tasksRoutes from "./tasks/tasks.routes.js";
+import logbooksRoutes from "./logbooks/logbooks.routes.js";
 import usersRoutes from "./users/users.routes.js";
 import notesRoutes from "./notes/notes.routes.js";
 import simulatorsRoutes from "./simulators/simulators.routes.js";
@@ -16,7 +17,7 @@ app.use("/tasks", tasksRoutes);
 app.use("/users", usersRoutes);
 app.use("/notes", notesRoutes);
 app.use("/simulators", simulatorsRoutes);
-
+app.use("/logbooks", logbooksRoutes);
 app.listen(FRONTEND_URL, () => {
     console.log(`🚀 Server running on http://localhost:${FRONTEND_URL}`);
 });
