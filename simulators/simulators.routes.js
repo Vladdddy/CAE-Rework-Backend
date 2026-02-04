@@ -50,6 +50,11 @@ router.post("/", async (req, res) => {
         // Convert time strings to datetime objects, preserving local timezone
         const creationDate = new Date(simulator.creationDate);
 
+        // Validate the creation date
+        if (isNaN(creationDate.getTime())) {
+            return res.status(400).json({ error: "Invalid creation date" });
+        }
+
         // Parse time strings and create datetime with proper timezone offset
         const startDateTime = simulator.startHour
             ? new Date(
@@ -92,6 +97,62 @@ router.post("/", async (req, res) => {
         });
     } catch (err) {
         console.error("Error in /simulators POST endpoint:", err.message);
+        console.error("Full error:", err);
+        res.status(500).json({ error: "Database error", details: err.message });
+    }
+});
+
+router.put("/", async (req, res) => {
+    const { simulator } = req.body;
+
+    console.log("Received simulator data for update:", simulator);
+
+    try {
+        const pool = await poolPromise;
+        if (!pool) {
+            return res.status(503).json({ error: "Database not connected" });
+        }
+
+        // Convert time strings to datetime objects, preserving local timezone
+        const creationDate = new Date(simulator.creationDate);
+
+        // Validate the creation date
+        if (isNaN(creationDate.getTime())) {
+            return res.status(400).json({ error: "Invalid creation date" });
+        }
+
+        // Parse time strings and create datetime with proper timezone offset
+        const startDateTime = simulator.startHour
+            ? new Date(
+                  `${creationDate.toISOString().split("T")[0]}T${simulator.startHour}:00.000Z`,
+              )
+            : null;
+        const endDateTime = simulator.endHour
+            ? new Date(
+                  `${creationDate.toISOString().split("T")[0]}T${simulator.endHour}:00.000Z`,
+              )
+            : null;
+
+        const result = await pool
+            .request()
+            .input("name", sql.NVarChar, simulator.name)
+            .input("start_hour", sql.DateTime, startDateTime)
+            .input("end_hour", sql.DateTime, endDateTime)
+            .input("assigned_to", sql.NVarChar, simulator.assignedTo)
+            .input("creation_date", sql.Date, simulator.creationDate).query(`
+          UPDATE dbo.Simulator
+          SET
+            START_HOUR = @start_hour,
+            END_HOUR = @end_hour,
+            ASSIGNED_TO = @assigned_to
+          WHERE NAME = @name AND CREATION_DATE = @creation_date;
+        `);
+
+        console.log("Rows affected:", result.rowsAffected);
+
+        res.status(200).json({ ...simulator });
+    } catch (err) {
+        console.error("Error in /simulators PUT endpoint:", err.message);
         console.error("Full error:", err);
         res.status(500).json({ error: "Database error", details: err.message });
     }
