@@ -55,9 +55,10 @@ router.post("/:id", async (req, res) => {
             .input("taskId", sql.Int, id)
             .input("createdBy", sql.Int, createdBy)
             .input("description", sql.NVarChar, description)
-            .input("createdDate", sql.DateTime, new Date()).query(`
-                INSERT INTO dbo.NoteTask (TASKID, CREATEDBY, DESCRIPTION, CREATEDDATE)
-                VALUES (@taskId, @createdBy, @description, @createdDate)
+            .input("createdDate", sql.DateTime, new Date())
+            .input("type", sql.NVarChar, req.body.type).query(`
+                INSERT INTO dbo.NoteTask (TASKID, CREATEDBY, DESCRIPTION, CREATEDDATE, TYPE)
+                VALUES (@taskId, @createdBy, @description, @createdDate, @type)
             `);
 
         res.status(201).json({ message: "Note created successfully", result });

@@ -55,9 +55,10 @@ router.post("/:id", async (req, res) => {
             .input("logbookId", sql.Int, id)
             .input("createdBy", sql.Int, createdBy)
             .input("description", sql.NVarChar, description)
-            .input("createdDate", sql.DateTime, new Date()).query(`
-                INSERT INTO dbo.NoteLogbook (LOGBOOKID, CREATEDBY, DESCRIPTION, CREATEDDATE)
-                VALUES (@logbookId, @createdBy, @description, @createdDate)
+            .input("createdDate", sql.DateTime, new Date())
+            .input("type", sql.NVarChar, req.body.type).query(`
+                INSERT INTO dbo.NoteLogbook (LOGBOOKID, CREATEDBY, DESCRIPTION, CREATEDDATE, TYPE)
+                VALUES (@logbookId, @createdBy, @description, @createdDate, @type)
             `);
 
         res.status(201).json({ message: "Note created successfully", result });
