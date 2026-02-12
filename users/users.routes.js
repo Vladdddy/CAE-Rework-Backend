@@ -62,7 +62,7 @@ router.post("/register", async (req, res) => {
             .input("password", sql.NVarChar, hashedPassword)
             .input("role", sql.NVarChar, role || "Employee")
             .query(
-                "INSERT INTO dbo.Employee (Username, PasswordHash, Role) VALUES (@username, @password, @role)"
+                "INSERT INTO dbo.Employee (Username, PasswordHash, Role) VALUES (@username, @password, @role)",
             );
 
         console.log("Registration successful for", username);
@@ -127,9 +127,10 @@ router.post("/login", async (req, res) => {
                 id: user.ID,
                 username: user.Username,
                 role: user.Role,
+                firstAccess: user.FIRST_ACCESS,
             },
             process.env.JWT_SECRET || "your-secret-key-change-this",
-            { expiresIn: "7d" }
+            { expiresIn: "7d" },
         );
 
         res.json({
@@ -137,6 +138,7 @@ router.post("/login", async (req, res) => {
                 id: user.ID,
                 username: user.Username,
                 role: user.Role,
+                firstAccess: user.FIRST_ACCESS,
             },
             token,
         });
@@ -167,6 +169,7 @@ router.get("/validate", async (req, res) => {
                 id: decoded.id,
                 username: decoded.username,
                 role: decoded.role,
+                firstAccess: decoded.firstAccess,
             },
         });
     } catch (err) {
@@ -178,6 +181,60 @@ router.get("/validate", async (req, res) => {
             return res.status(401).json({ error: "Invalid token" });
         }
         res.status(500).json({ error: "Server error", details: err.message });
+    }
+});
+
+router.post("/:id/change-password", async (req, res) => {
+    const { id } = req.params;
+    const { password } = req.body;
+
+    console.log("Received password change request for user ID:", id);
+
+    if (!password) {
+        return res.status(400).json({ error: "Password is required" });
+    }
+
+    try {
+        const pool = await poolPromise;
+        if (!pool) {
+            return res.status(503).json({ error: "Database not connected" });
+        }
+
+        // Check if user exists
+        const userCheck = await pool
+            .request()
+            .input("id", sql.Int, id)
+            .query("SELECT ID FROM Employee WHERE ID = @id");
+
+        if (userCheck.recordset.length === 0) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        // Hash the new password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Update the password and set FIRST_ACCESS to 0
+        await pool
+            .request()
+            .input("id", sql.Int, id)
+            .input("passwordHash", sql.NVarChar, hashedPassword)
+            .query(
+                "UPDATE Employee SET PasswordHash = @passwordHash, FIRST_ACCESS = 0 WHERE ID = @id",
+            );
+
+        console.log("Password changed successfully for user ID:", id);
+
+        res.json({
+            success: true,
+            message: "Password changed successfully",
+        });
+    } catch (err) {
+        console.error(
+            "Error in /users/:id/change-password endpoint:",
+            err.message,
+        );
+        console.error("Full error:", err);
+        res.status(500).json({ error: "Database error", details: err.message });
     }
 });
 
