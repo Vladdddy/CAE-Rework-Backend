@@ -8,6 +8,7 @@ import notesLogbookRoutes from "./notesLogbook/notesLogbook.routes.js";
 import simulatorsRoutes from "./simulators/simulators.routes.js";
 import employeeShiftRoutes from "./employeeShift/employeeShift.routes.js";
 import employeeOverviewRoutes from "./employeeOverview/employeeOverview.routes.js";
+import employeeMessageRoutes from "./employeeMessage/employeeMessage.routes.js";
 
 const app = express();
 const FRONTEND_URL = process.env.FRONTEND_URL;
@@ -24,8 +25,9 @@ app.use("/simulators", simulatorsRoutes);
 app.use("/logbooks", logbooksRoutes);
 app.use("/employeeShift", employeeShiftRoutes);
 app.use("/employeeOverview", employeeOverviewRoutes);
+app.use("/employeeMessage", employeeMessageRoutes);
 app.listen(FRONTEND_URL, () => {
-    console.log(`🚀 Server running on http://localhost:${FRONTEND_URL}`);
+    console.log(`Server running on http://localhost:${FRONTEND_URL}`);
 });
 /*
 // ✅ Leggi le variabili da .env (con fallback)
