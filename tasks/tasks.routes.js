@@ -45,7 +45,8 @@ router.post("/", async (req, res) => {
             .input("type", sql.NVarChar, task.type)
             .input("start_date", sql.Date, task.start_date)
             .input("end_date", sql.Date, task.end_date)
-            .input("selected_days", sql.NVarChar, task.selected_days).query(`
+            .input("selected_days", sql.NVarChar, task.selected_days)
+            .input("isFlagged", sql.Bit, task.isFlagged).query(`
       INSERT INTO dbo.Task (
         TITLE,
         DESCRIPTION,
@@ -60,7 +61,8 @@ router.post("/", async (req, res) => {
         TYPE,
         START_DATE,
         END_DATE,
-        SELECTED_DAYS
+        SELECTED_DAYS,
+        IS_FLAGGED
       )
       VALUES (
         @title,
@@ -76,7 +78,8 @@ router.post("/", async (req, res) => {
         @type,
         @start_date,
         @end_date,
-        @selected_days
+        @selected_days,
+        @isFlagged
       );
       SELECT SCOPE_IDENTITY() AS id;
     `);
@@ -132,7 +135,8 @@ router.put("/:id", async (req, res) => {
             .input("extradetail", sql.NVarChar, task.extradetail)
             .input("status", sql.NVarChar, task.status)
             .input("date", sql.Date, task.date)
-            .input("time", sql.NVarChar, task.time).query(`
+            .input("time", sql.NVarChar, task.time)
+            .input("isFlagged", sql.Bit, task.isFlagged).query(`
       UPDATE dbo.Task
       SET
         TITLE = @title,
@@ -144,7 +148,8 @@ router.put("/:id", async (req, res) => {
         EXTRADETAIL = @extradetail,
         STATUS = @status,
         DATE = @date,
-        TIME = @time
+        TIME = @time,
+        IS_FLAGGED = @isFlagged
       WHERE ID = @id;
     `);
 
