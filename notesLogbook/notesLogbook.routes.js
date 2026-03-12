@@ -92,4 +92,49 @@ router.post("/:id", async (req, res) => {
     }
 });
 
+router.put("/:id", async (req, res) => {
+    const { id } = req.params;
+    const { description } = req.body;
+
+    try {
+        const pool = await poolPromise;
+        if (!pool) {
+            return res.status(503).json({ error: "Database not connected" });
+        }
+
+        // Check if the note exists
+        const noteCheck = await pool
+            .request()
+            .input("noteId", sql.Int, id)
+            .query(`SELECT ID FROM dbo.NoteLogbook WHERE ID = @noteId`);
+
+        if (noteCheck.recordset.length === 0) {
+            return res.status(404).json({
+                error: "Note not found",
+                details: `Note with ID ${id} does not exist`,
+            });
+        }
+
+        // Update the note description
+        const result = await pool
+            .request()
+            .input("noteId", sql.Int, id)
+            .input("description", sql.NVarChar, description).query(`
+                UPDATE dbo.NoteLogbook
+                SET DESCRIPTION = @description
+                WHERE ID = @noteId
+            `);
+
+        console.log("DB result: Updated logbook note ID", id);
+        res.json({
+            message: "Note updated successfully",
+            rowsAffected: result.rowsAffected[0],
+        });
+    } catch (err) {
+        console.error("Error updating note:", err.message);
+        console.error("Full error:", err);
+        res.status(500).json({ error: "Database error", details: err.message });
+    }
+});
+
 export default router;
