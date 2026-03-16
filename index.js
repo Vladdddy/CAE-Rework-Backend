@@ -10,6 +10,7 @@ import employeeShiftRoutes from "./employeeShift/employeeShift.routes.js";
 import employeeOverviewRoutes from "./employeeOverview/employeeOverview.routes.js";
 import employeeMessageRoutes from "./employeeMessage/employeeMessage.routes.js";
 import patternShiftRoutes from "./patternShift/patternShift.routes.js";
+import shiftOrderRoutes from "./shiftOrder/shiftOrder.routes.js";
 
 const app = express();
 const FRONTEND_URL = process.env.FRONTEND_URL;
@@ -28,6 +29,7 @@ app.use("/employeeShift", employeeShiftRoutes);
 app.use("/employeeOverview", employeeOverviewRoutes);
 app.use("/employeeMessage", employeeMessageRoutes);
 app.use("/patternShift", patternShiftRoutes);
+app.use("/shiftOrder", shiftOrderRoutes);
 app.listen(FRONTEND_URL, () => {
     console.log(`Server running on http://localhost:${FRONTEND_URL}`);
 });

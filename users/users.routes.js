@@ -15,6 +15,7 @@ router.get("/", async (req, res) => {
         const result = await pool.request().query(`
       SELECT *
       FROM Employee
+      WHERE IsDeleted = 0;
     `);
 
         res.json(result.recordset);
@@ -46,7 +47,9 @@ router.post("/register", async (req, res) => {
         const existingUser = await pool
             .request()
             .input("username", sql.NVarChar, username)
-            .query("SELECT * FROM Employee WHERE Username = @username");
+            .query(
+                "SELECT * FROM Employee WHERE Username = @username AND IsDeleted = 0",
+            );
 
         if (existingUser.recordset.length > 0) {
             return res.status(409).json({ error: "Username already exists" });
@@ -100,7 +103,7 @@ router.post("/login", async (req, res) => {
             .input("username", sql.NVarChar, username).query(`
                 SELECT *
                 FROM Employee
-                WHERE USERNAME = @username
+                WHERE USERNAME = @username AND IsDeleted = 0
             `);
 
         if (result.recordset.length === 0) {

@@ -132,4 +132,42 @@ router.put("/:id", async (req, res) => {
     }
 });
 
+router.delete("/:id", async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const pool = await poolPromise;
+        if (!pool) {
+            return res.status(503).json({ error: "Database not connected" });
+        }
+
+        // Check if the note exists before attempting delete
+        const noteCheck = await pool
+            .request()
+            .input("noteId", sql.Int, id)
+            .query(`SELECT ID FROM dbo.NoteTask WHERE ID = @noteId`);
+
+        if (noteCheck.recordset.length === 0) {
+            return res.status(404).json({
+                error: "Note not found",
+                details: `Note with ID ${id} does not exist`,
+            });
+        }
+
+        const result = await pool.request().input("noteId", sql.Int, id).query(`
+                DELETE FROM dbo.NoteTask
+                WHERE ID = @noteId
+            `);
+
+        res.json({
+            message: "Note deleted successfully",
+            rowsAffected: result.rowsAffected[0],
+        });
+    } catch (err) {
+        console.error("Error deleting note:", err.message);
+        console.error("Full error:", err);
+        res.status(500).json({ error: "Database error", details: err.message });
+    }
+});
+
 export default router;
