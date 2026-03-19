@@ -1,9 +1,11 @@
 import express from "express";
 import sql from "mssql";
 import { poolPromise } from "../config/db.js";
+import path from "path";
+import fs from "fs";
 
 const router = express.Router();
-
+const UPLOAD_DIR = process.env.UPLOAD_DIR;
 router.get("/", async (req, res) => {
     try {
         const pool = await poolPromise;
@@ -19,7 +21,10 @@ router.get("/", async (req, res) => {
     } catch (err) {
         console.error("Error in /logbooks endpoint:", err.message);
         console.error("Full error:", err);
-        res.status(500).json({ error: "Database error", details: err.message });
+        res.status(500).json({
+            error: "Database error",
+            details: err.message,
+        });
     }
 });
 
@@ -102,10 +107,21 @@ router.delete("/:id", async (req, res) => {
         if (!pool) {
             return res.status(503).json({ error: "Database not connected" });
         }
+
+        await pool.request().input("logbookId", sql.Int, id).query(`
+      DELETE FROM dbo.ImageLogbook
+      WHERE LOGBOOK_ID = @logbookId;
+    `);
+
         const result = await pool.request().input("id", sql.Int, id).query(`
       DELETE FROM dbo.Logbook
       WHERE ID = @id;
     `);
+
+        const logbookFolderPath = path.join(UPLOAD_DIR, `Logbook-${id}`);
+        if (fs.existsSync(logbookFolderPath)) {
+            fs.rmSync(logbookFolderPath, { recursive: true, force: true });
+        }
 
         if (result.rowsAffected[0] === 0) {
             return res.status(404).json({ error: "Logbook not found" });

@@ -11,12 +11,15 @@ import employeeOverviewRoutes from "./employeeOverview/employeeOverview.routes.j
 import employeeMessageRoutes from "./employeeMessage/employeeMessage.routes.js";
 import patternShiftRoutes from "./patternShift/patternShift.routes.js";
 import shiftOrderRoutes from "./shiftOrder/shiftOrder.routes.js";
+import imageTaskRoutes from "./imageTask/imageTask.routes.js";
+import imageLogbookRoutes from "./imageLogbook/imageLogbook.routes.js";
 
 const app = express();
 const FRONTEND_URL = process.env.FRONTEND_URL;
 
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static("uploads"));
 
 app.use("/tasks", tasksRoutes);
@@ -30,6 +33,8 @@ app.use("/employeeOverview", employeeOverviewRoutes);
 app.use("/employeeMessage", employeeMessageRoutes);
 app.use("/patternShift", patternShiftRoutes);
 app.use("/shiftOrder", shiftOrderRoutes);
+app.use("/imageTask", imageTaskRoutes);
+app.use("/imageLogbook", imageLogbookRoutes);
 app.listen(FRONTEND_URL, () => {
     console.log(`Server running on http://localhost:${FRONTEND_URL}`);
 });

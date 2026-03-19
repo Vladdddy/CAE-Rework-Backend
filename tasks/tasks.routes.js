@@ -1,9 +1,11 @@
 import express from "express";
 import sql from "mssql";
 import { poolPromise } from "../config/db.js";
+import path from "path";
+import fs from "fs";
 
 const router = express.Router();
-
+const UPLOAD_DIR = process.env.UPLOAD_DIR;
 router.get("/", async (req, res) => {
     try {
         const pool = await poolPromise;
@@ -19,7 +21,10 @@ router.get("/", async (req, res) => {
     } catch (err) {
         console.error("Error in /tasks endpoint:", err.message);
         console.error("Full error:", err);
-        res.status(500).json({ error: "Database error", details: err.message });
+        res.status(500).json({
+            error: "Database error",
+            details: err.message,
+        });
     }
 });
 
@@ -102,10 +107,26 @@ router.delete("/:id", async (req, res) => {
         if (!pool) {
             return res.status(503).json({ error: "Database not connected" });
         }
-        await pool.request().input("id", sql.Int, id).query(`
-      DELETE FROM dbo.Task
-      WHERE ID = @id;
+
+        await pool.request().input("taskId", sql.Int, id).query(`
+      DELETE FROM dbo.ImageTask
+      WHERE TASK_ID = @taskId;
     `);
+
+        const taskDeleteResult = await pool.request().input("id", sql.Int, id)
+            .query(`
+            DELETE FROM dbo.Task
+            WHERE ID = @id;
+        `);
+
+        const taskFolderPath = path.join(UPLOAD_DIR, `Task-${id}`);
+        if (fs.existsSync(taskFolderPath)) {
+            fs.rmSync(taskFolderPath, { recursive: true, force: true });
+        }
+
+        if (taskDeleteResult.rowsAffected?.[0] === 0) {
+            return res.status(404).json({ error: "Task not found" });
+        }
 
         res.status(204).end();
     } catch (err) {
