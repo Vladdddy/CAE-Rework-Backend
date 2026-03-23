@@ -75,8 +75,7 @@ const storage = multer.diskStorage({
         cb(null, logbookDir);
     },
     filename: (_req, file, cb) => {
-        const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-        cb(null, `${unique}${path.extname(file.originalname)}`);
+        cb(null, path.basename(file.originalname || "attachment"));
     },
 });
 

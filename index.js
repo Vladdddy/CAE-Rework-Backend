@@ -13,6 +13,7 @@ import patternShiftRoutes from "./patternShift/patternShift.routes.js";
 import shiftOrderRoutes from "./shiftOrder/shiftOrder.routes.js";
 import imageTaskRoutes from "./imageTask/imageTask.routes.js";
 import imageLogbookRoutes from "./imageLogbook/imageLogbook.routes.js";
+import trainingLoadRoutes from "./trainingLoad/trainingLoad.routes.js";
 
 const app = express();
 const FRONTEND_URL = process.env.FRONTEND_URL;
@@ -35,25 +36,7 @@ app.use("/patternShift", patternShiftRoutes);
 app.use("/shiftOrder", shiftOrderRoutes);
 app.use("/imageTask", imageTaskRoutes);
 app.use("/imageLogbook", imageLogbookRoutes);
+app.use("/trainingLoad", trainingLoadRoutes);
 app.listen(FRONTEND_URL, () => {
     console.log(`Server running on http://localhost:${FRONTEND_URL}`);
 });
-/*
-// ✅ Leggi le variabili da .env (con fallback)
-const PORT = process.env.PORT || 3003;
-const SSL_KEY_PATH = process.env.SSL_KEY_PATH || "./ssl/key.pem";
-const SSL_CERT_PATH = process.env.SSL_CERT_PATH || "./ssl/cert.pem";
-
-// ✅ Carica certificati
-const httpsOptions = {
-    key: fs.readFileSync(SSL_KEY_PATH),
-    cert: fs.readFileSync(SSL_CERT_PATH),
-};
-
-// ✅ Avvia server HTTPS
-app.createServer(httpsOptions, app).listen(process.env.PORT, "0.0.0.0", () => {
-    console.log(
-        `✅ Server HTTPS avviato su https://0.0.0.0:${process.env.PORT}`,
-    );
-});
-*/

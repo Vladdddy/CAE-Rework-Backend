@@ -2,11 +2,12 @@ import sql from "mssql";
 import "dotenv/config";
 
 const config = {
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    server: process.env.DB_SERVER,
-    database: process.env.DB_USER_NAME,
-    port: Number(process.env.DB_PORT),
+    user: process.env.DB_SIMONE_USER || process.env.DB_USER,
+    password: process.env.DB_SIMONE_PASSWORD || process.env.DB_PASSWORD,
+    server: process.env.DB_SIMONE_SERVER || process.env.DB_SERVER,
+    database:
+        process.env.DB_SIMONE_NAME || process.env.DB_USER_NAME || "SimOneDB",
+    port: Number(process.env.DB_SIMONE_PORT || process.env.DB_PORT),
     options: {
         encrypt: false, // true se Azure
         trustServerCertificate: true,
