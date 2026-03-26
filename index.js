@@ -14,6 +14,7 @@ import shiftOrderRoutes from "./shiftOrder/shiftOrder.routes.js";
 import imageTaskRoutes from "./imageTask/imageTask.routes.js";
 import imageLogbookRoutes from "./imageLogbook/imageLogbook.routes.js";
 import trainingLoadRoutes from "./trainingLoad/trainingLoad.routes.js";
+import unavailableTaskRoutes from "./unavailableTask/unavailableTask.routes.js";
 
 const app = express();
 const FRONTEND_URL = process.env.FRONTEND_URL;
@@ -37,6 +38,7 @@ app.use("/shiftOrder", shiftOrderRoutes);
 app.use("/imageTask", imageTaskRoutes);
 app.use("/imageLogbook", imageLogbookRoutes);
 app.use("/trainingLoad", trainingLoadRoutes);
+app.use("/unavailableTask", unavailableTaskRoutes);
 app.listen(FRONTEND_URL, () => {
     console.log(`Server running on http://localhost:${FRONTEND_URL}`);
 });
