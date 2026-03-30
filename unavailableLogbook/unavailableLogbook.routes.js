@@ -1,0 +1,206 @@
+import express from "express";
+import sql from "mssql";
+import { poolPromise } from "../config/db.js";
+
+const router = express.Router();
+
+router.get("/", async (req, res) => {
+    try {
+        const pool = await poolPromise;
+        if (!pool) {
+            return res.status(503).json({ error: "Database not connected" });
+        }
+
+        const result = await pool.request().query(`
+      SELECT *
+      FROM dbo.UnavailableLogbook
+    `);
+
+        res.json(result.recordset);
+    } catch (err) {
+        console.error("Error in /unavailableLogbook endpoint:", err.message);
+        console.error("Full error:", err);
+        res.status(500).json({
+            error: "Database error",
+            details: err.message,
+        });
+    }
+});
+
+router.post("/", async (req, res) => {
+    const { logbook } = req.body;
+    try {
+        const pool = await poolPromise;
+        if (!pool) {
+            return res.status(503).json({ error: "Database not connected" });
+        }
+
+        const result = await pool
+            .request()
+            .input("id", sql.Int, logbook.id)
+            .input("title", sql.NVarChar, logbook.title)
+            .input("description", sql.NVarChar, logbook.description)
+            .input("assigned_to", sql.NVarChar, logbook.assigned_to)
+            .input("simulator", sql.NVarChar, logbook.simulator)
+            .input("category", sql.NVarChar, logbook.category)
+            .input("subcategory", sql.NVarChar, logbook.subcategory)
+            .input("extradetail", sql.NVarChar, logbook.extradetail)
+            .input("status", sql.NVarChar, logbook.status)
+            .input("date", sql.Date, logbook.date)
+            .input("time", sql.NVarChar, logbook.time)
+            .input("type", sql.NVarChar, logbook.type)
+            .input("start_date", sql.Date, logbook.start_date)
+            .input("end_date", sql.Date, logbook.end_date)
+            .input("selected_days", sql.NVarChar, logbook.selected_days)
+            .input("isLogbook", sql.Bit, logbook.isLogbook)
+            .input("originalLogbookId", sql.Int, logbook.original_logbook_id)
+            .query(`
+      INSERT INTO dbo.UnavailableLogbook (
+        ID,
+        TITLE,
+        DESCRIPTION,
+        ASSIGNED_TO,
+        SIMULATOR,
+        CATEGORY,
+        SUBCATEGORY,
+        EXTRADETAIL,
+        STATUS,
+        DATE,
+        TIME,
+        TYPE,
+        START_DATE,
+        END_DATE,
+        SELECTED_DAYS,
+        ISLOGBOOK,
+        ORIGINAL_LOGBOOK_ID
+      )
+      VALUES (
+        @id,
+        @title,
+        @description,
+        @assigned_to,
+        @simulator,
+        @category,
+        @subcategory,
+        @extradetail,
+        @status,
+        @date,
+        @time,
+        @type,
+        @start_date,
+        @end_date,
+        @selected_days,
+        @isLogbook,
+        @originalLogbookId
+      );
+      SELECT @id AS id;
+    `);
+
+        res.status(201).json({
+            id: result.recordset[0].id,
+            ...logbook,
+        });
+    } catch (err) {
+        console.error(
+            "Error in /unavailableLogbook POST endpoint:",
+            err.message,
+        );
+        console.error("Full error:", err);
+        res.status(500).json({ error: "Database error", details: err.message });
+    }
+});
+
+router.delete("/:id", async (req, res) => {
+    const { id } = req.params;
+    try {
+        const pool = await poolPromise;
+        if (!pool) {
+            return res.status(503).json({ error: "Database not connected" });
+        }
+
+        const unavailableLogbookDeleteResult = await pool
+            .request()
+            .input("id", sql.Int, id).query(`
+            DELETE FROM dbo.UnavailableLogbook
+            WHERE ID = @id;
+        `);
+
+        if (unavailableLogbookDeleteResult.rowsAffected?.[0] === 0) {
+            return res
+                .status(404)
+                .json({ error: "UnavailableLogbook not found" });
+        }
+
+        res.status(204).end();
+    } catch (err) {
+        console.error(
+            "Error in /unavailableLogbook DELETE endpoint:",
+            err.message,
+        );
+        console.error("Full error:", err);
+        res.status(500).json({ error: "Database error", details: err.message });
+    }
+});
+
+router.put("/:id", async (req, res) => {
+    const { id } = req.params;
+    const { logbook } = req.body;
+    try {
+        const pool = await poolPromise;
+        if (!pool) {
+            return res.status(503).json({ error: "Database not connected" });
+        }
+
+        await pool
+            .request()
+            .input("id", sql.Int, id)
+            .input("title", sql.NVarChar, logbook.title)
+            .input("description", sql.NVarChar, logbook.description)
+            .input("assigned_to", sql.NVarChar, logbook.assigned_to)
+            .input("simulator", sql.NVarChar, logbook.simulator)
+            .input("category", sql.NVarChar, logbook.category)
+            .input("subcategory", sql.NVarChar, logbook.subcategory)
+            .input("extradetail", sql.NVarChar, logbook.extradetail)
+            .input("status", sql.NVarChar, logbook.status)
+            .input("date", sql.Date, logbook.date)
+            .input("time", sql.NVarChar, logbook.time)
+            .input("type", sql.NVarChar, logbook.type)
+            .input("start_date", sql.Date, logbook.start_date)
+            .input("end_date", sql.Date, logbook.end_date)
+            .input("selected_days", sql.NVarChar, logbook.selected_days)
+            .input("isLogbook", sql.Bit, logbook.isLogbook)
+            .input("originalLogbookId", sql.Int, logbook.original_logbook_id)
+            .query(`
+      UPDATE dbo.UnavailableLogbook
+      SET
+        TITLE = @title,
+        DESCRIPTION = @description,
+        ASSIGNED_TO = @assigned_to,
+        SIMULATOR = @simulator,
+        CATEGORY = @category,
+        SUBCATEGORY = @subcategory,
+        EXTRADETAIL = @extradetail,
+        STATUS = @status,
+        DATE = @date,
+        TIME = @time,
+        TYPE = @type,
+        START_DATE = @start_date,
+        END_DATE = @end_date,
+        SELECTED_DAYS = @selected_days,
+        ISLOGBOOK = @isLogbook,
+        ORIGINAL_LOGBOOK_ID = @originalLogbookId
+      WHERE ID = @id;
+    `);
+
+        res.status(200).json({ id: parseInt(id), ...logbook });
+    } catch (err) {
+        console.error(
+            "Error in /unavailableLogbook PUT endpoint:",
+            err.message,
+        );
+        console.error("Full error:", err);
+        res.status(500).json({ error: "Database error", details: err.message });
+    }
+});
+
+export default router;
