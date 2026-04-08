@@ -13,7 +13,8 @@ router.get("/", async (req, res) => {
         const result = await pool.request().query(`
     SELECT *
     FROM [Yearly PM Plan]
-    WHERE CAST([Scheduled on] AS DATE) = CAST(GETDATE() AS DATE)
+    WHERE CAST([Scheduled on] AS DATE) >= '2025-01-01'
+    AND [ID_sim] IN (1, 2, 3, 4, 5, 6)
 `);
 
         res.json(result.recordset);
