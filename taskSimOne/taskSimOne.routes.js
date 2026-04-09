@@ -14,7 +14,7 @@ router.get("/", async (req, res) => {
     SELECT *
     FROM [Yearly PM Plan]
     WHERE CAST([Scheduled on] AS DATE) >= '2025-01-01'
-    AND [ID_sim] IN (1, 2, 3, 4, 5, 6)
+    AND [ID_sim] IN (1, 2, 3, 4, 5, 6, 13)
 `);
 
         res.json(result.recordset);
