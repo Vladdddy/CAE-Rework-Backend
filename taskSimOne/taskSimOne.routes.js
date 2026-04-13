@@ -26,6 +26,28 @@ router.get("/", async (req, res) => {
     }
 });
 
+router.get("/current-month", async (req, res) => {
+    try {
+        const pool = await poolPromise;
+        if (!pool) {
+            return res.status(503).json({ error: "Database not connected" });
+        }
+
+        const result = await pool.request().query(`
+            SELECT *
+            FROM [Yearly PM Plan]
+            WHERE YEAR([Scheduled on]) = YEAR(GETDATE())
+              AND MONTH([Scheduled on]) = MONTH(GETDATE())
+              AND [ID_sim] IN (1, 2, 3, 4, 5, 6, 13)
+        `);
+
+        res.json(result.recordset);
+    } catch (err) {
+        console.error("Error in /taskSimOne/current-month endpoint:", err.message);
+        res.status(500).json({ error: "Database error", details: err.message });
+    }
+});
+
 router.put("/:id", async (req, res) => {
     const { id } = req.params;
     const { assignedTo } = req.body;
