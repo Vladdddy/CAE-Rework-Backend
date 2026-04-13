@@ -17,6 +17,7 @@ import trainingLoadRoutes from "./trainingLoad/trainingLoad.routes.js";
 import unavailableTaskRoutes from "./unavailableTask/unavailableTask.routes.js";
 import unavailableLogbookRoutes from "./unavailableLogbook/unavailableLogbook.routes.js";
 import taskSimOneRoutes from "./taskSimOne/taskSimOne.routes.js";
+import yearlyPMTechCommentsRoutes from "./yearlyPMTechComments/yearlyPMTechComments.routes.js";
 
 const app = express();
 const FRONTEND_URL = process.env.FRONTEND_URL;
@@ -43,6 +44,7 @@ app.use("/trainingLoad", trainingLoadRoutes);
 app.use("/unavailableTask", unavailableTaskRoutes);
 app.use("/unavailableLogbook", unavailableLogbookRoutes);
 app.use("/taskSimOne", taskSimOneRoutes);
+app.use("/yearlyPMTechComments", yearlyPMTechCommentsRoutes);
 app.listen(FRONTEND_URL, () => {
     console.log(`Server running on http://localhost:${FRONTEND_URL}`);
 });

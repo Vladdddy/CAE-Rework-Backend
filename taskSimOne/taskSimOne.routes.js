@@ -1,4 +1,5 @@
 import express from "express";
+import sql from "mssql";
 import { poolPromise } from "../config/dbUsers.js";
 
 const router = express.Router();
@@ -20,6 +21,32 @@ router.get("/", async (req, res) => {
         res.json(result.recordset);
     } catch (err) {
         console.error("Error in /taskSimOne endpoint:", err.message);
+        console.error("Full error:", err);
+        res.status(500).json({ error: "Database error", details: err.message });
+    }
+});
+
+router.put("/:id", async (req, res) => {
+    const { id } = req.params;
+    const { assignedTo } = req.body;
+    try {
+        const pool = await poolPromise;
+        if (!pool) {
+            return res.status(503).json({ error: "Database not connected" });
+        }
+
+        await pool
+            .request()
+            .input("id", sql.Int, id)
+            .input("assignedTo", sql.Int, assignedTo).query(`
+            UPDATE [Yearly PM Plan]
+            SET [AssignedTo] = @assignedTo
+            WHERE [ID_task] = @id;
+        `);
+
+        res.status(200).json({ id: parseInt(id), assignedTo });
+    } catch (err) {
+        console.error("Error in /taskSimOne PUT endpoint:", err.message);
         console.error("Full error:", err);
         res.status(500).json({ error: "Database error", details: err.message });
     }
