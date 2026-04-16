@@ -223,7 +223,7 @@ router.get("/:groupId/unread/:userId", async (req, res) => {
         if (!pool)
             return res.status(503).json({ error: "Database not connected" });
 
-        const result = await pool
+        const countResult = await pool
             .request()
             .input("groupId", sql.Int, groupId)
             .input("userId", sql.Int, userId).query(`
@@ -237,9 +237,144 @@ router.get("/:groupId/unread/:userId", async (req, res) => {
                   )
             `);
 
-        res.json({ unreadCount: result.recordset[0].UnreadCount });
+        const latestResult = await pool
+            .request()
+            .input("groupId", sql.Int, groupId)
+            .input("userId", sql.Int, userId).query(`
+                SELECT TOP 1 m.MESSAGE_CONTENT, e.Username AS SenderUsername
+                FROM dbo.GroupChatMessage m
+                INNER JOIN dbo.Employee e ON m.SENDER_ID = e.ID
+                WHERE m.GROUP_ID = @groupId
+                  AND m.ID NOT IN (
+                      SELECT r.MESSAGE_ID
+                      FROM dbo.GroupChatMessageRead r
+                      WHERE r.USER_ID = @userId
+                  )
+                ORDER BY m.DATE_SENT DESC
+            `);
+
+        const latest = latestResult.recordset[0] ?? null;
+        res.json({
+            unreadCount: countResult.recordset[0].UnreadCount,
+            latestMessage: latest
+                ? { content: latest.MESSAGE_CONTENT, senderUsername: latest.SenderUsername }
+                : null,
+        });
     } catch (err) {
         console.error("Error fetching group unread count:", err.message);
+        res.status(500).json({ error: "Database error", details: err.message });
+    }
+});
+
+// GET /unread/total/:userId — total unread group messages across all groups for a user
+router.get("/unread/total/:userId", async (req, res) => {
+    const { userId } = req.params;
+
+    try {
+        const pool = await poolPromise;
+        if (!pool)
+            return res.status(503).json({ error: "Database not connected" });
+
+        const result = await pool
+            .request()
+            .input("userId", sql.Int, userId).query(`
+                SELECT COUNT(*) AS TotalUnread
+                FROM dbo.GroupChatMessage m
+                INNER JOIN dbo.GroupChatMember gm
+                    ON m.GROUP_ID = gm.GROUP_ID AND gm.USER_ID = @userId
+                WHERE m.ID NOT IN (
+                    SELECT r.MESSAGE_ID
+                    FROM dbo.GroupChatMessageRead r
+                    WHERE r.USER_ID = @userId
+                )
+            `);
+
+        res.json({ totalUnread: result.recordset[0].TotalUnread });
+    } catch (err) {
+        console.error("Error fetching total group unread count:", err.message);
+        res.status(500).json({ error: "Database error", details: err.message });
+    }
+});
+
+// POST /:groupId/members — add a user to a group
+router.post("/:groupId/members", async (req, res) => {
+    const { groupId } = req.params;
+    const { userId } = req.body;
+
+    if (!userId) {
+        return res.status(400).json({ error: "userId is required" });
+    }
+
+    try {
+        const pool = await poolPromise;
+        if (!pool)
+            return res.status(503).json({ error: "Database not connected" });
+
+        // Check group exists
+        const groupCheck = await pool
+            .request()
+            .input("groupId", sql.Int, groupId)
+            .query(`SELECT ID FROM dbo.GroupChat WHERE ID = @groupId`);
+
+        if (groupCheck.recordset.length === 0) {
+            return res.status(404).json({ error: "Group not found" });
+        }
+
+        // Check not already a member
+        const memberCheck = await pool
+            .request()
+            .input("groupId", sql.Int, groupId)
+            .input("userId", sql.Int, userId)
+            .query(`
+                SELECT ID FROM dbo.GroupChatMember
+                WHERE GROUP_ID = @groupId AND USER_ID = @userId
+            `);
+
+        if (memberCheck.recordset.length > 0) {
+            return res.status(409).json({ error: "User is already a member" });
+        }
+
+        await pool
+            .request()
+            .input("groupId", sql.Int, groupId)
+            .input("userId", sql.Int, userId)
+            .query(`
+                INSERT INTO dbo.GroupChatMember (GROUP_ID, USER_ID)
+                VALUES (@groupId, @userId)
+            `);
+
+        res.status(201).json({ success: true });
+    } catch (err) {
+        console.error("Error adding group member:", err.message);
+        res.status(500).json({ error: "Database error", details: err.message });
+    }
+});
+
+// DELETE /:groupId/members/:userId — remove a user from a group
+router.delete("/:groupId/members/:userId", async (req, res) => {
+    const { groupId, userId } = req.params;
+
+    try {
+        const pool = await poolPromise;
+        if (!pool)
+            return res.status(503).json({ error: "Database not connected" });
+
+        const result = await pool
+            .request()
+            .input("groupId", sql.Int, groupId)
+            .input("userId", sql.Int, userId)
+            .query(`
+                DELETE FROM dbo.GroupChatMember
+                WHERE GROUP_ID = @groupId AND USER_ID = @userId
+            `);
+
+        if (result.rowsAffected[0] === 0) {
+            return res.status(404).json({ error: "Member not found in group" });
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Error removing group member:", err.message);
         res.status(500).json({ error: "Database error", details: err.message });
     }
 });
