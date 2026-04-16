@@ -15,7 +15,7 @@ router.get("/", async (req, res) => {
         const result = await pool.request().query(`
       SELECT *
       FROM Employee
-      WHERE IsDeleted = 0;
+      WHERE IsDeleted = 0 AND Role != 'View';
     `);
 
         res.json(result.recordset);
