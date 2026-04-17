@@ -157,7 +157,8 @@ router.put("/:id", async (req, res) => {
             .input("status", sql.NVarChar, task.status)
             .input("date", sql.Date, task.date)
             .input("time", sql.NVarChar, task.time)
-            .input("isFlagged", sql.Bit, task.isFlagged).query(`
+            .input("isFlagged", sql.Bit, task.isFlagged)
+            .input("completed_by", sql.Int, task.completed_by != null ? task.completed_by : null).query(`
       UPDATE dbo.Task
       SET
         TITLE = @title,
@@ -170,7 +171,8 @@ router.put("/:id", async (req, res) => {
         STATUS = @status,
         DATE = @date,
         TIME = @time,
-        IS_FLAGGED = @isFlagged
+        IS_FLAGGED = @isFlagged,
+        COMPLETED_BY = @completed_by
       WHERE ID = @id;
     `);
 

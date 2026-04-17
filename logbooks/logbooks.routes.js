@@ -158,7 +158,8 @@ router.put("/:id", async (req, res) => {
             .input("extradetail", sql.NVarChar, logbook.extradetail)
             .input("status", sql.NVarChar, logbook.status)
             .input("date", sql.Date, logbook.date)
-            .input("time", sql.NVarChar, logbook.time).query(`
+            .input("time", sql.NVarChar, logbook.time)
+            .input("completed_by", sql.Int, logbook.completed_by != null ? logbook.completed_by : null).query(`
       UPDATE dbo.Logbook
       SET
         TITLE = @title,
@@ -170,7 +171,8 @@ router.put("/:id", async (req, res) => {
         EXTRADETAIL = @extradetail,
         STATUS = @status,
         DATE = @date,
-        TIME = @time
+        TIME = @time,
+        COMPLETED_BY = @completed_by
       WHERE ID = @id;
     `);
 
