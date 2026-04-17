@@ -19,6 +19,9 @@ import unavailableLogbookRoutes from "./unavailableLogbook/unavailableLogbook.ro
 import taskSimOneRoutes from "./taskSimOne/taskSimOne.routes.js";
 import yearlyPMTechCommentsRoutes from "./yearlyPMTechComments/yearlyPMTechComments.routes.js";
 import groupChatRoutes from "./groupChat/groupChat.routes.js";
+import simoneUsersRoutes from "./simoneUsers/simoneUsers.routes.js";
+import simoneRolesRoutes from "./simoneRoles/simoneRoles.routes.js";
+import simoneApplicationsRoutes from "./simoneApplications/simoneApplications.routes.js";
 
 const app = express();
 const FRONTEND_URL = process.env.FRONTEND_URL;
@@ -47,6 +50,9 @@ app.use("/unavailableLogbook", unavailableLogbookRoutes);
 app.use("/taskSimOne", taskSimOneRoutes);
 app.use("/yearlyPMTechComments", yearlyPMTechCommentsRoutes);
 app.use("/groupChat", groupChatRoutes);
+app.use("/simoneUsers", simoneUsersRoutes);
+app.use("/simoneRoles", simoneRolesRoutes);
+app.use("/simoneApplications", simoneApplicationsRoutes);
 app.listen(FRONTEND_URL, () => {
     console.log(`Server running on http://localhost:${FRONTEND_URL}`);
 });
