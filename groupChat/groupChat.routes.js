@@ -379,6 +379,41 @@ router.delete("/:groupId/members/:userId", async (req, res) => {
     }
 });
 
+// DELETE /messages/:messageId — delete a single group chat message
+router.delete("/messages/:messageId", async (req, res) => {
+    const { messageId } = req.params;
+
+    try {
+        const pool = await poolPromise;
+        if (!pool)
+            return res.status(503).json({ error: "Database not connected" });
+
+        const check = await pool
+            .request()
+            .input("messageId", sql.Int, messageId)
+            .query(`SELECT ID FROM dbo.GroupChatMessage WHERE ID = @messageId`);
+
+        if (check.recordset.length === 0) {
+            return res.status(404).json({ error: "Message not found" });
+        }
+
+        await pool
+            .request()
+            .input("messageId", sql.Int, messageId)
+            .query(`DELETE FROM dbo.GroupChatMessageRead WHERE MESSAGE_ID = @messageId`);
+
+        await pool
+            .request()
+            .input("messageId", sql.Int, messageId)
+            .query(`DELETE FROM dbo.GroupChatMessage WHERE ID = @messageId`);
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Error deleting group message:", err.message);
+        res.status(500).json({ error: "Database error", details: err.message });
+    }
+});
+
 // DELETE /:groupId — delete a group and all its members/messages (cascades via FK)
 router.delete("/:groupId", async (req, res) => {
     const { groupId } = req.params;
