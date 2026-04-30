@@ -92,7 +92,7 @@ router.put("/:id", async (req, res) => {
 
         if (assignedTo !== undefined) {
             setClauses.push("[AssignedTo] = @assignedTo");
-            request.input("assignedTo", sql.Int, assignedTo);
+            request.input("assignedTo", sql.NVarChar, assignedTo);
         }
 
         if (taskDone !== undefined) {
