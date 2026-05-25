@@ -23,6 +23,7 @@ import simoneUsersRoutes from "./simoneUsers/simoneUsers.routes.js";
 import simoneRolesRoutes from "./simoneRoles/simoneRoles.routes.js";
 import simoneApplicationsRoutes from "./simoneApplications/simoneApplications.routes.js";
 import shiftCellHighlightRoutes from "./shiftCellHighlight/shiftCellHighlight.routes.js";
+import scoreRoutes from "./score/score.routes.js";
 
 const app = express();
 const FRONTEND_URL = process.env.FRONTEND_URL;
@@ -55,6 +56,7 @@ app.use("/simoneUsers", simoneUsersRoutes);
 app.use("/simoneRoles", simoneRolesRoutes);
 app.use("/simoneApplications", simoneApplicationsRoutes);
 app.use("/shiftCellHighlight", shiftCellHighlightRoutes);
+app.use("/score", scoreRoutes);
 app.listen(FRONTEND_URL, () => {
     console.log(`Server running on http://localhost:${FRONTEND_URL}`);
 });
