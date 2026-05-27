@@ -23,22 +23,57 @@ router.get("/", async (req, res) => {
         if (!pool) {
             return res.status(503).json({ error: "Database not connected" });
         }
-        const result = await pool.request().query(`
-            SELECT DISTINCT
-                sl.Worker_ID     AS ID,
-                sl.[User]        AS Username,
-                sl.firstname,
-                sl.lastname,
-                CONCAT(sl.firstname, ' ', sl.lastname) AS FullName,
-                sl.Role,
-                sl.must_reset_psw AS FIRST_ACCESS,
-                sl.Active
-            FROM [dbo].[sv_login] sl
-            INNER JOIN [dbo].[UserOrgRoles] uor ON uor.userID = sl.Worker_ID
-            INNER JOIN [dbo].[OrgRoles] orr ON orr.roleID = uor.roleID AND orr.parentRoleID = 4
-            WHERE sl.Active = 1
-            ORDER BY sl.lastname, sl.firstname
-        `);
+        const appName = (process.env.APP_NAME || "Simtech").trim();
+        const result = await pool
+            .request()
+            .input("appName", sql.NVarChar, appName).query(`
+                WITH RankedRoles AS (
+                    SELECT
+                        sl.Worker_ID      AS ID,
+                        sl.[User]         AS Username,
+                        sl.firstname,
+                        sl.lastname,
+                        CONCAT(sl.firstname, ' ', sl.lastname) AS FullName,
+                        CASE ar.[name]
+                            WHEN 'Administrator' THEN 'Shift Leader'
+                            WHEN 'Technician'    THEN 'Employee'
+                            WHEN 'Guest'         THEN 'Guest'
+                        END               AS Role,
+                        sl.must_reset_psw AS FIRST_ACCESS,
+                        sl.Active,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY sl.Worker_ID
+                            ORDER BY CASE ar.[name]
+                                WHEN 'Administrator' THEN 1
+                                WHEN 'Technician'    THEN 2
+                                WHEN 'Guest'         THEN 3
+                            END
+                        ) AS rn
+                    FROM [dbo].[sv_login] sl
+                    INNER JOIN [dbo].[UserAppRoles] uar ON uar.userID = sl.Worker_ID
+                    INNER JOIN [dbo].[AppRoles] ar
+                        ON ar.appRoleID = uar.appRoleID
+                        AND ar.appID = (
+                            SELECT TOP 1 appID
+                            FROM [dbo].[Applications]
+                            WHERE LTRIM(RTRIM(name)) = @appName
+                        )
+                        AND ar.[name] IN ('Administrator', 'Technician', 'Guest')
+                    WHERE sl.Active = 1
+                )
+                SELECT ID, Username, firstname, lastname, FullName, Role, FIRST_ACCESS, Active
+                FROM RankedRoles
+                WHERE rn = 1
+                ORDER BY
+                    CASE Role
+                        WHEN 'Shift Leader' THEN 1
+                        WHEN 'Employee'     THEN 2
+                        WHEN 'Guest'        THEN 3
+                        ELSE 4
+                    END,
+                    lastname,
+                    firstname
+            `);
 
         res.json(result.recordset);
     } catch (err) {
