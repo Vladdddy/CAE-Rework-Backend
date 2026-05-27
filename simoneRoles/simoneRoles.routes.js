@@ -4,7 +4,7 @@ import { poolPromise } from "../config/dbUsers.js";
 
 const router = express.Router();
 
-// GET / — list all roles
+// GET / — list all organisational roles
 router.get("/", async (req, res) => {
     try {
         const pool = await poolPromise;
@@ -12,19 +12,18 @@ router.get("/", async (req, res) => {
             return res.status(503).json({ error: "Database not connected" });
 
         const result = await pool.request().query(`
-            SELECT r.roleID, r.appID, r.name, a.name AS appName
-            FROM dbo.Roles r
-            LEFT JOIN dbo.Applications a ON r.appID = a.appID
-            ORDER BY r.appID, r.name ASC
+            SELECT roleID, name, parentRoleID
+            FROM dbo.OrgRoles
+            ORDER BY name ASC
         `);
         res.json(result.recordset);
     } catch (err) {
-        console.error("Error fetching roles:", err.message);
+        console.error("Error fetching org roles:", err.message);
         res.status(500).json({ error: "Database error", details: err.message });
     }
 });
 
-// GET /app/:appId — list roles for a specific application
+// GET /app/:appId — list AppRoles for a specific application
 router.get("/app/:appId", async (req, res) => {
     const { appId } = req.params;
     try {
@@ -32,21 +31,23 @@ router.get("/app/:appId", async (req, res) => {
         if (!pool)
             return res.status(503).json({ error: "Database not connected" });
 
-        const result = await pool.request().input("appId", sql.Int, appId)
+        const result = await pool
+            .request()
+            .input("appId", sql.Int, appId)
             .query(`
-                SELECT roleID, appID, name
-                FROM dbo.Roles
+                SELECT appRoleID, appID, name
+                FROM dbo.AppRoles
                 WHERE appID = @appId
                 ORDER BY name ASC
             `);
         res.json(result.recordset);
     } catch (err) {
-        console.error("Error fetching roles by app:", err.message);
+        console.error("Error fetching app roles by app:", err.message);
         res.status(500).json({ error: "Database error", details: err.message });
     }
 });
 
-// GET /:id — get role by ID
+// GET /:id — get OrgRole by ID
 router.get("/:id", async (req, res) => {
     const { id } = req.params;
     try {
@@ -58,7 +59,7 @@ router.get("/:id", async (req, res) => {
             .request()
             .input("id", sql.Int, id)
             .query(
-                `SELECT roleID, appID, name FROM dbo.Roles WHERE roleID = @id`,
+                `SELECT roleID, name, parentRoleID FROM dbo.OrgRoles WHERE roleID = @id`,
             );
 
         if (result.recordset.length === 0)
@@ -66,16 +67,16 @@ router.get("/:id", async (req, res) => {
 
         res.json(result.recordset[0]);
     } catch (err) {
-        console.error("Error fetching role:", err.message);
+        console.error("Error fetching org role:", err.message);
         res.status(500).json({ error: "Database error", details: err.message });
     }
 });
 
-// POST / — create role
+// POST / — create OrgRole
 router.post("/", async (req, res) => {
-    const { appID, name } = req.body;
-    if (!appID || !name)
-        return res.status(400).json({ error: "appID and name are required" });
+    const { name, parentRoleID } = req.body;
+    if (!name)
+        return res.status(400).json({ error: "name is required" });
 
     try {
         const pool = await poolPromise;
@@ -84,11 +85,11 @@ router.post("/", async (req, res) => {
 
         const result = await pool
             .request()
-            .input("appID", sql.Int, appID)
-            .input("name", sql.NVarChar(100), name).query(`
-                INSERT INTO dbo.Roles (appID, name)
+            .input("name", sql.NVarChar(100), name)
+            .input("parentRoleID", sql.Int, parentRoleID ?? null).query(`
+                INSERT INTO dbo.OrgRoles (name, parentRoleID)
                 OUTPUT INSERTED.roleID
-                VALUES (@appID, @name)
+                VALUES (@name, @parentRoleID)
             `);
 
         res.status(201).json({
@@ -96,17 +97,17 @@ router.post("/", async (req, res) => {
             roleID: result.recordset[0].roleID,
         });
     } catch (err) {
-        console.error("Error creating role:", err.message);
+        console.error("Error creating org role:", err.message);
         res.status(500).json({ error: "Database error", details: err.message });
     }
 });
 
-// PUT /:id — update role
+// PUT /:id — update OrgRole
 router.put("/:id", async (req, res) => {
     const { id } = req.params;
-    const { appID, name } = req.body;
-    if (!appID || !name)
-        return res.status(400).json({ error: "appID and name are required" });
+    const { name, parentRoleID } = req.body;
+    if (!name)
+        return res.status(400).json({ error: "name is required" });
 
     try {
         const pool = await poolPromise;
@@ -116,10 +117,10 @@ router.put("/:id", async (req, res) => {
         const result = await pool
             .request()
             .input("id", sql.Int, id)
-            .input("appID", sql.Int, appID)
             .input("name", sql.NVarChar(100), name)
+            .input("parentRoleID", sql.Int, parentRoleID ?? null)
             .query(
-                `UPDATE dbo.Roles SET appID = @appID, name = @name WHERE roleID = @id`,
+                `UPDATE dbo.OrgRoles SET name = @name, parentRoleID = @parentRoleID WHERE roleID = @id`,
             );
 
         if (result.rowsAffected[0] === 0)
@@ -127,12 +128,12 @@ router.put("/:id", async (req, res) => {
 
         res.json({ success: true });
     } catch (err) {
-        console.error("Error updating role:", err.message);
+        console.error("Error updating org role:", err.message);
         res.status(500).json({ error: "Database error", details: err.message });
     }
 });
 
-// DELETE /:id — delete role
+// DELETE /:id — delete OrgRole
 router.delete("/:id", async (req, res) => {
     const { id } = req.params;
     try {
@@ -143,14 +144,14 @@ router.delete("/:id", async (req, res) => {
         const result = await pool
             .request()
             .input("id", sql.Int, id)
-            .query(`DELETE FROM dbo.Roles WHERE roleID = @id`);
+            .query(`DELETE FROM dbo.OrgRoles WHERE roleID = @id`);
 
         if (result.rowsAffected[0] === 0)
             return res.status(404).json({ error: "Role not found" });
 
         res.json({ success: true });
     } catch (err) {
-        console.error("Error deleting role:", err.message);
+        console.error("Error deleting org role:", err.message);
         res.status(500).json({ error: "Database error", details: err.message });
     }
 });

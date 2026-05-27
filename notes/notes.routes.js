@@ -12,7 +12,7 @@ router.get("/", async (req, res) => {
         }
         const result = await pool.request().query(`
               SELECT *
-              FROM dbo.NoteTask;
+              FROM dbo.NoteTask_Backup;
         `);
 
         console.log(
@@ -37,7 +37,7 @@ router.get("/:id", async (req, res) => {
         }
         const result = await pool.request().input("id", sql.Int, id).query(`
               SELECT *
-              FROM dbo.NoteTask
+              FROM dbo.NoteTask_Backup
               WHERE TASKID = @id;
     `);
 
@@ -73,6 +73,8 @@ router.post("/:id", async (req, res) => {
             });
         }
 
+        console.log("Creating note — taskId:", id, "createdBy:", createdBy, "type:", req.body.type);
+
         const result = await pool
             .request()
             .input("taskId", sql.Int, id)
@@ -80,7 +82,7 @@ router.post("/:id", async (req, res) => {
             .input("description", sql.NVarChar, description)
             .input("createdDate", sql.DateTime, new Date())
             .input("type", sql.NVarChar, req.body.type).query(`
-                INSERT INTO dbo.NoteTask (TASKID, CREATEDBY, DESCRIPTION, CREATEDDATE, TYPE)
+                INSERT INTO dbo.NoteTask_Backup (TASKID, CREATEDBY, DESCRIPTION, CREATEDDATE, TYPE)
                 VALUES (@taskId, @createdBy, @description, @createdDate, @type)
             `);
 
@@ -88,7 +90,7 @@ router.post("/:id", async (req, res) => {
     } catch (err) {
         console.error("Error creating note:", err.message);
         console.error("Full error:", err);
-        res.status(500).json({ error: "Database error", details: err.message });
+        res.status(500).json({ error: "Database error", details: err.message, sqlError: err.number ?? null });
     }
 });
 
@@ -106,7 +108,7 @@ router.put("/:id", async (req, res) => {
         const noteCheck = await pool
             .request()
             .input("noteId", sql.Int, id)
-            .query(`SELECT ID FROM dbo.NoteTask WHERE ID = @noteId`);
+            .query(`SELECT ID FROM dbo.NoteTask_Backup WHERE ID = @noteId`);
 
         if (noteCheck.recordset.length === 0) {
             return res.status(404).json({
@@ -119,7 +121,7 @@ router.put("/:id", async (req, res) => {
             .request()
             .input("noteId", sql.Int, id)
             .input("description", sql.NVarChar, description).query(`
-                UPDATE dbo.NoteTask
+                UPDATE dbo.NoteTask_Backup
                 SET DESCRIPTION = @description
                 WHERE ID = @noteId
             `);
@@ -145,7 +147,7 @@ router.delete("/:id", async (req, res) => {
         const noteCheck = await pool
             .request()
             .input("noteId", sql.Int, id)
-            .query(`SELECT ID FROM dbo.NoteTask WHERE ID = @noteId`);
+            .query(`SELECT ID FROM dbo.NoteTask_Backup WHERE ID = @noteId`);
 
         if (noteCheck.recordset.length === 0) {
             return res.status(404).json({
@@ -155,7 +157,7 @@ router.delete("/:id", async (req, res) => {
         }
 
         const result = await pool.request().input("noteId", sql.Int, id).query(`
-                DELETE FROM dbo.NoteTask
+                DELETE FROM dbo.NoteTask_Backup
                 WHERE ID = @noteId
             `);
 

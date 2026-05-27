@@ -4,16 +4,16 @@ import { poolPromise } from "../config/dbUsers.js";
 
 const router = express.Router();
 
-// GET / — list all active users from SimOneDB_copied
+// GET / — list all active users from SimOneDB
 router.get("/", async (req, res) => {
     try {
         const pool = await poolPromise;
         if (!pool) return res.status(503).json({ error: "Database not connected" });
 
         const result = await pool.request().query(`
-            SELECT userID, firstname, lastname, username, email, active, must_reset_psw
-            FROM dbo.Users
-            WHERE active = 1
+            SELECT Worker_ID AS userID, [User] AS username, firstname, lastname, email, Active AS active, must_reset_psw
+            FROM [dbo].[sv_login]
+            WHERE Active = 1
             ORDER BY lastname, firstname ASC
         `);
         res.json(result.recordset);
@@ -23,7 +23,7 @@ router.get("/", async (req, res) => {
     }
 });
 
-// GET /:id — get user by ID
+// GET /:id — get user by Worker_ID
 router.get("/:id", async (req, res) => {
     const { id } = req.params;
     try {
@@ -33,9 +33,9 @@ router.get("/:id", async (req, res) => {
         const result = await pool.request()
             .input("id", sql.Int, id)
             .query(`
-                SELECT userID, firstname, lastname, username, email, active, must_reset_psw
-                FROM dbo.Users
-                WHERE userID = @id
+                SELECT Worker_ID AS userID, [User] AS username, firstname, lastname, email, Active AS active, must_reset_psw
+                FROM [dbo].[sv_login]
+                WHERE Worker_ID = @id
             `);
 
         if (result.recordset.length === 0)
@@ -67,9 +67,9 @@ router.put("/:id", async (req, res) => {
             .input("username", sql.NVarChar(100), username)
             .input("email", sql.NVarChar(255), email)
             .query(`
-                UPDATE dbo.Users
-                SET firstname = @firstname, lastname = @lastname, username = @username, email = @email
-                WHERE userID = @id
+                UPDATE [dbo].[sv_login]
+                SET firstname = @firstname, lastname = @lastname, [User] = @username, email = @email
+                WHERE Worker_ID = @id
             `);
 
         if (result.rowsAffected[0] === 0)
@@ -82,7 +82,7 @@ router.put("/:id", async (req, res) => {
     }
 });
 
-// DELETE /:id — soft delete (active = 0)
+// DELETE /:id — soft delete (Active = 0)
 router.delete("/:id", async (req, res) => {
     const { id } = req.params;
     try {
@@ -91,7 +91,7 @@ router.delete("/:id", async (req, res) => {
 
         const result = await pool.request()
             .input("id", sql.Int, id)
-            .query(`UPDATE dbo.Users SET active = 0 WHERE userID = @id`);
+            .query(`UPDATE [dbo].[sv_login] SET Active = 0 WHERE Worker_ID = @id`);
 
         if (result.rowsAffected[0] === 0)
             return res.status(404).json({ error: "User not found" });

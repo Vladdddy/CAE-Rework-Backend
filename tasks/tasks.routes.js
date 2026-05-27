@@ -51,7 +51,8 @@ router.post("/", async (req, res) => {
             .input("start_date", sql.Date, task.start_date)
             .input("end_date", sql.Date, task.end_date)
             .input("selected_days", sql.NVarChar, task.selected_days)
-            .input("isFlagged", sql.Bit, task.isFlagged).query(`
+            .input("isFlagged", sql.Bit, task.isFlagged)
+            .input("from_logbook_id", sql.Int, task.from_logbook_id != null ? task.from_logbook_id : null).query(`
       INSERT INTO dbo.Task (
         TITLE,
         DESCRIPTION,
@@ -67,7 +68,8 @@ router.post("/", async (req, res) => {
         START_DATE,
         END_DATE,
         SELECTED_DAYS,
-        IS_FLAGGED
+        IS_FLAGGED,
+        FROM_LOGBOOK_ID
       )
       VALUES (
         @title,
@@ -84,7 +86,8 @@ router.post("/", async (req, res) => {
         @start_date,
         @end_date,
         @selected_days,
-        @isFlagged
+        @isFlagged,
+        @from_logbook_id
       );
       SELECT SCOPE_IDENTITY() AS id;
     `);

@@ -159,7 +159,8 @@ router.put("/:id", async (req, res) => {
             .input("status", sql.NVarChar, logbook.status)
             .input("date", sql.Date, logbook.date)
             .input("time", sql.NVarChar, logbook.time)
-            .input("completed_by", sql.Int, logbook.completed_by != null ? logbook.completed_by : null).query(`
+            .input("completed_by", sql.Int, logbook.completed_by != null ? logbook.completed_by : null)
+        .input("converted_to_task_id", sql.Int, logbook.converted_to_task_id != null ? logbook.converted_to_task_id : null).query(`
       UPDATE dbo.Logbook
       SET
         TITLE = @title,
@@ -172,7 +173,8 @@ router.put("/:id", async (req, res) => {
         STATUS = @status,
         DATE = @date,
         TIME = @time,
-        COMPLETED_BY = @completed_by
+        COMPLETED_BY = @completed_by,
+        CONVERTED_TO_TASK_ID = @converted_to_task_id
       WHERE ID = @id;
     `);
 

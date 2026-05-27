@@ -29,7 +29,7 @@ router.post("/", async (req, res) => {
             .request()
             .input("name", sql.NVarChar(100), name)
             .input("createdBy", sql.Int, createdBy).query(`
-                INSERT INTO dbo.GroupChat (NAME, CREATED_BY)
+                INSERT INTO dbo.GroupChat_Backup (NAME, CREATED_BY)
                 OUTPUT INSERTED.ID
                 VALUES (@name, @createdBy)
             `);
@@ -43,7 +43,7 @@ router.post("/", async (req, res) => {
                 .request()
                 .input("groupId", sql.Int, groupId)
                 .input("userId", sql.Int, userId).query(`
-                    INSERT INTO dbo.GroupChatMember (GROUP_ID, USER_ID)
+                    INSERT INTO dbo.GroupChatMember_Backup (GROUP_ID, USER_ID)
                     VALUES (@groupId, @userId)
                 `);
         }
@@ -69,8 +69,8 @@ router.get("/user/:userId", async (req, res) => {
             .request()
             .input("userId", sql.Int, userId).query(`
                 SELECT g.ID, g.NAME, g.CREATED_BY, g.CREATED_AT
-                FROM dbo.GroupChat g
-                INNER JOIN dbo.GroupChatMember gm ON g.ID = gm.GROUP_ID
+                FROM dbo.GroupChat_Backup g
+                INNER JOIN dbo.GroupChatMember_Backup gm ON g.ID = gm.GROUP_ID
                 WHERE gm.USER_ID = @userId
                 ORDER BY g.CREATED_AT DESC
             `);
@@ -82,9 +82,9 @@ router.get("/user/:userId", async (req, res) => {
             const membersResult = await pool
                 .request()
                 .input("groupId", sql.Int, group.ID).query(`
-                    SELECT e.ID, e.Username
-                    FROM dbo.GroupChatMember gm
-                    INNER JOIN dbo.Employee e ON gm.USER_ID = e.ID
+                    SELECT u.Worker_ID AS ID, u.[User] AS Username, CONCAT(u.firstname, ' ', u.lastname) AS FullName
+                    FROM dbo.GroupChatMember_Backup gm
+                    INNER JOIN [SimOneDB].[dbo].[sv_login] u ON gm.USER_ID = u.Worker_ID
                     WHERE gm.GROUP_ID = @groupId
                 `);
             group.MEMBERS = membersResult.recordset;
@@ -114,9 +114,10 @@ router.get("/:groupId/messages", async (req, res) => {
                     m.SENDER_ID,
                     m.MESSAGE_CONTENT,
                     m.DATE_SENT,
-                    e.Username AS SenderUsername
-                FROM dbo.GroupChatMessage m
-                INNER JOIN dbo.Employee e ON m.SENDER_ID = e.ID
+                    u.[User] AS SenderUsername,
+                    CONCAT(u.firstname, ' ', u.lastname) AS SenderFullName
+                FROM dbo.GroupChatMessage_Backup m
+                INNER JOIN [SimOneDB].[dbo].[sv_login] u ON m.SENDER_ID = u.Worker_ID
                 WHERE m.GROUP_ID = @groupId
                 ORDER BY m.DATE_SENT ASC
             `);
@@ -150,7 +151,7 @@ router.post("/:groupId/messages", async (req, res) => {
             .input("senderId", sql.Int, senderId)
             .input("messageContent", sql.NVarChar(sql.MAX), messageContent)
             .query(`
-                INSERT INTO dbo.GroupChatMessage (GROUP_ID, SENDER_ID, MESSAGE_CONTENT)
+                INSERT INTO dbo.GroupChatMessage_Backup (GROUP_ID, SENDER_ID, MESSAGE_CONTENT)
                 OUTPUT INSERTED.ID
                 VALUES (@groupId, @senderId, @messageContent)
             `);
@@ -162,7 +163,7 @@ router.post("/:groupId/messages", async (req, res) => {
             .request()
             .input("messageId", sql.Int, messageId)
             .input("userId", sql.Int, senderId).query(`
-                INSERT INTO dbo.GroupChatMessageRead (MESSAGE_ID, USER_ID)
+                INSERT INTO dbo.GroupChatMessageRead_Backup (MESSAGE_ID, USER_ID)
                 VALUES (@messageId, @userId)
             `);
 
@@ -188,11 +189,11 @@ router.put("/:groupId/messages/read/:userId", async (req, res) => {
             .input("groupId", sql.Int, groupId)
             .input("userId", sql.Int, userId).query(`
                 SELECT m.ID
-                FROM dbo.GroupChatMessage m
+                FROM dbo.GroupChatMessage_Backup m
                 WHERE m.GROUP_ID = @groupId
                   AND m.ID NOT IN (
                       SELECT r.MESSAGE_ID
-                      FROM dbo.GroupChatMessageRead r
+                      FROM dbo.GroupChatMessageRead_Backup r
                       WHERE r.USER_ID = @userId
                   )
             `);
@@ -202,7 +203,7 @@ router.put("/:groupId/messages/read/:userId", async (req, res) => {
                 .request()
                 .input("messageId", sql.Int, row.ID)
                 .input("userId", sql.Int, userId).query(`
-                    INSERT INTO dbo.GroupChatMessageRead (MESSAGE_ID, USER_ID)
+                    INSERT INTO dbo.GroupChatMessageRead_Backup (MESSAGE_ID, USER_ID)
                     VALUES (@messageId, @userId)
                 `);
         }
@@ -228,11 +229,11 @@ router.get("/:groupId/unread/:userId", async (req, res) => {
             .input("groupId", sql.Int, groupId)
             .input("userId", sql.Int, userId).query(`
                 SELECT COUNT(*) AS UnreadCount
-                FROM dbo.GroupChatMessage m
+                FROM dbo.GroupChatMessage_Backup m
                 WHERE m.GROUP_ID = @groupId
                   AND m.ID NOT IN (
                       SELECT r.MESSAGE_ID
-                      FROM dbo.GroupChatMessageRead r
+                      FROM dbo.GroupChatMessageRead_Backup r
                       WHERE r.USER_ID = @userId
                   )
             `);
@@ -241,13 +242,13 @@ router.get("/:groupId/unread/:userId", async (req, res) => {
             .request()
             .input("groupId", sql.Int, groupId)
             .input("userId", sql.Int, userId).query(`
-                SELECT TOP 1 m.MESSAGE_CONTENT, e.Username AS SenderUsername
-                FROM dbo.GroupChatMessage m
-                INNER JOIN dbo.Employee e ON m.SENDER_ID = e.ID
+                SELECT TOP 1 m.MESSAGE_CONTENT, u.[User] AS SenderUsername, CONCAT(u.firstname, ' ', u.lastname) AS SenderFullName
+                FROM dbo.GroupChatMessage_Backup m
+                INNER JOIN [SimOneDB].[dbo].[sv_login] u ON m.SENDER_ID = u.Worker_ID
                 WHERE m.GROUP_ID = @groupId
                   AND m.ID NOT IN (
                       SELECT r.MESSAGE_ID
-                      FROM dbo.GroupChatMessageRead r
+                      FROM dbo.GroupChatMessageRead_Backup r
                       WHERE r.USER_ID = @userId
                   )
                 ORDER BY m.DATE_SENT DESC
@@ -257,7 +258,11 @@ router.get("/:groupId/unread/:userId", async (req, res) => {
         res.json({
             unreadCount: countResult.recordset[0].UnreadCount,
             latestMessage: latest
-                ? { content: latest.MESSAGE_CONTENT, senderUsername: latest.SenderUsername }
+                ? {
+                      content: latest.MESSAGE_CONTENT,
+                      senderUsername: latest.SenderUsername,
+                      senderFullName: latest.SenderFullName,
+                  }
                 : null,
         });
     } catch (err) {
@@ -279,12 +284,12 @@ router.get("/unread/total/:userId", async (req, res) => {
             .request()
             .input("userId", sql.Int, userId).query(`
                 SELECT COUNT(*) AS TotalUnread
-                FROM dbo.GroupChatMessage m
-                INNER JOIN dbo.GroupChatMember gm
+                FROM dbo.GroupChatMessage_Backup m
+                INNER JOIN dbo.GroupChatMember_Backup gm
                     ON m.GROUP_ID = gm.GROUP_ID AND gm.USER_ID = @userId
                 WHERE m.ID NOT IN (
                     SELECT r.MESSAGE_ID
-                    FROM dbo.GroupChatMessageRead r
+                    FROM dbo.GroupChatMessageRead_Backup r
                     WHERE r.USER_ID = @userId
                 )
             `);
@@ -314,7 +319,7 @@ router.post("/:groupId/members", async (req, res) => {
         const groupCheck = await pool
             .request()
             .input("groupId", sql.Int, groupId)
-            .query(`SELECT ID FROM dbo.GroupChat WHERE ID = @groupId`);
+            .query(`SELECT ID FROM dbo.GroupChat_Backup WHERE ID = @groupId`);
 
         if (groupCheck.recordset.length === 0) {
             return res.status(404).json({ error: "Group not found" });
@@ -326,7 +331,7 @@ router.post("/:groupId/members", async (req, res) => {
             .input("groupId", sql.Int, groupId)
             .input("userId", sql.Int, userId)
             .query(`
-                SELECT ID FROM dbo.GroupChatMember
+                SELECT ID FROM dbo.GroupChatMember_Backup
                 WHERE GROUP_ID = @groupId AND USER_ID = @userId
             `);
 
@@ -339,7 +344,7 @@ router.post("/:groupId/members", async (req, res) => {
             .input("groupId", sql.Int, groupId)
             .input("userId", sql.Int, userId)
             .query(`
-                INSERT INTO dbo.GroupChatMember (GROUP_ID, USER_ID)
+                INSERT INTO dbo.GroupChatMember_Backup (GROUP_ID, USER_ID)
                 VALUES (@groupId, @userId)
             `);
 
@@ -364,7 +369,7 @@ router.delete("/:groupId/members/:userId", async (req, res) => {
             .input("groupId", sql.Int, groupId)
             .input("userId", sql.Int, userId)
             .query(`
-                DELETE FROM dbo.GroupChatMember
+                DELETE FROM dbo.GroupChatMember_Backup
                 WHERE GROUP_ID = @groupId AND USER_ID = @userId
             `);
 
@@ -391,7 +396,7 @@ router.delete("/messages/:messageId", async (req, res) => {
         const check = await pool
             .request()
             .input("messageId", sql.Int, messageId)
-            .query(`SELECT ID FROM dbo.GroupChatMessage WHERE ID = @messageId`);
+            .query(`SELECT ID FROM dbo.GroupChatMessage_Backup WHERE ID = @messageId`);
 
         if (check.recordset.length === 0) {
             return res.status(404).json({ error: "Message not found" });
@@ -400,12 +405,12 @@ router.delete("/messages/:messageId", async (req, res) => {
         await pool
             .request()
             .input("messageId", sql.Int, messageId)
-            .query(`DELETE FROM dbo.GroupChatMessageRead WHERE MESSAGE_ID = @messageId`);
+            .query(`DELETE FROM dbo.GroupChatMessageRead_Backup WHERE MESSAGE_ID = @messageId`);
 
         await pool
             .request()
             .input("messageId", sql.Int, messageId)
-            .query(`DELETE FROM dbo.GroupChatMessage WHERE ID = @messageId`);
+            .query(`DELETE FROM dbo.GroupChatMessage_Backup WHERE ID = @messageId`);
 
         res.json({ success: true });
     } catch (err) {
@@ -426,7 +431,7 @@ router.delete("/:groupId", async (req, res) => {
         const check = await pool
             .request()
             .input("groupId", sql.Int, groupId)
-            .query(`SELECT ID FROM dbo.GroupChat WHERE ID = @groupId`);
+            .query(`SELECT ID FROM dbo.GroupChat_Backup WHERE ID = @groupId`);
 
         if (check.recordset.length === 0) {
             return res.status(404).json({ error: "Group not found" });
@@ -435,7 +440,7 @@ router.delete("/:groupId", async (req, res) => {
         await pool
             .request()
             .input("groupId", sql.Int, groupId)
-            .query(`DELETE FROM dbo.GroupChat WHERE ID = @groupId`);
+            .query(`DELETE FROM dbo.GroupChat_Backup WHERE ID = @groupId`);
 
         res.json({ success: true });
     } catch (err) {

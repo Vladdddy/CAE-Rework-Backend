@@ -149,7 +149,7 @@ router.get("/", async (req, res) => {
                 esm.MONTH_KEY,
                 esm.SHIFT_DATA,
                 esm.LAST_UPDATED
-            FROM EmployeeShiftMonthly esm
+            FROM EmployeeShiftMonthly_New esm
             WHERE 1=1
         `;
 
@@ -231,7 +231,7 @@ router.get("/range", async (req, res) => {
                 esm.EMPLOYEE_ID,
                 esm.MONTH_KEY,
                 esm.SHIFT_DATA
-            FROM EmployeeShiftMonthly esm
+            FROM EmployeeShiftMonthly_New esm
             WHERE esm.MONTH_KEY IN (${Array.from(months)
                 .map((_, i) => `@month${i}`)
                 .join(",")})
@@ -340,7 +340,7 @@ router.post("/", async (req, res) => {
                 .request()
                 .input("EMPLOYEE_ID", sql.Int, EMPLOYEE_ID)
                 .input("MONTH_KEY", sql.VarChar(7), monthKey).query(`
-                    SELECT SHIFT_DATA FROM EmployeeShiftMonthly 
+                    SELECT SHIFT_DATA FROM EmployeeShiftMonthly_New 
                     WHERE EMPLOYEE_ID = @EMPLOYEE_ID AND MONTH_KEY = @MONTH_KEY
                 `);
 
@@ -361,7 +361,7 @@ router.post("/", async (req, res) => {
                         JSON.stringify(updatedData),
                     )
                     .input("LAST_UPDATED", sql.DateTime, new Date()).query(`
-                        UPDATE EmployeeShiftMonthly
+                        UPDATE EmployeeShiftMonthly_New
                         SET SHIFT_DATA = @SHIFT_DATA, LAST_UPDATED = @LAST_UPDATED
                         WHERE EMPLOYEE_ID = @EMPLOYEE_ID AND MONTH_KEY = @MONTH_KEY
                     `);
@@ -381,7 +381,7 @@ router.post("/", async (req, res) => {
                         JSON.stringify(updatedData),
                     )
                     .input("LAST_UPDATED", sql.DateTime, new Date()).query(`
-                        INSERT INTO EmployeeShiftMonthly (EMPLOYEE_ID, MONTH_KEY, SHIFT_DATA, LAST_UPDATED)
+                        INSERT INTO EmployeeShiftMonthly_New (EMPLOYEE_ID, MONTH_KEY, SHIFT_DATA, LAST_UPDATED)
                         VALUES (@EMPLOYEE_ID, @MONTH_KEY, @SHIFT_DATA, @LAST_UPDATED)
                     `);
             }
@@ -412,7 +412,7 @@ router.put("/:monthlyId", async (req, res) => {
         const currentResult = await pool
             .request()
             .input("ID", sql.Int, monthlyId).query(`
-                SELECT SHIFT_DATA FROM EmployeeShiftMonthly WHERE ID = @ID
+                SELECT SHIFT_DATA FROM EmployeeShiftMonthly_New WHERE ID = @ID
             `);
 
         if (currentResult.recordset.length === 0) {
@@ -438,7 +438,7 @@ router.put("/:monthlyId", async (req, res) => {
                 JSON.stringify(currentData),
             )
             .input("LAST_UPDATED", sql.DateTime, new Date()).query(`
-                UPDATE EmployeeShiftMonthly
+                UPDATE EmployeeShiftMonthly_New
                 SET SHIFT_DATA = @SHIFT_DATA, LAST_UPDATED = @LAST_UPDATED
                 WHERE ID = @ID
             `);
@@ -470,7 +470,7 @@ router.delete("/", async (req, res) => {
             .request()
             .input("EMPLOYEE_ID", sql.Int, employeeId)
             .input("MONTH_KEY", sql.VarChar(7), monthKey).query(`
-                SELECT ID, SHIFT_DATA FROM EmployeeShiftMonthly 
+                SELECT ID, SHIFT_DATA FROM EmployeeShiftMonthly_New 
                 WHERE EMPLOYEE_ID = @EMPLOYEE_ID AND MONTH_KEY = @MONTH_KEY
             `);
 
@@ -495,7 +495,7 @@ router.delete("/", async (req, res) => {
             await pool
                 .request()
                 .input("ID", sql.Int, currentResult.recordset[0].ID)
-                .query("DELETE FROM EmployeeShiftMonthly WHERE ID = @ID");
+                .query("DELETE FROM EmployeeShiftMonthly_New WHERE ID = @ID");
 
             res.json({
                 message: "Monthly record deleted (all shifts removed)",
@@ -511,7 +511,7 @@ router.delete("/", async (req, res) => {
                     JSON.stringify(currentData),
                 )
                 .input("LAST_UPDATED", sql.DateTime, new Date()).query(`
-                    UPDATE EmployeeShiftMonthly
+                    UPDATE EmployeeShiftMonthly_New
                     SET SHIFT_DATA = @SHIFT_DATA, LAST_UPDATED = @LAST_UPDATED
                     WHERE ID = @ID
                 `);
@@ -533,7 +533,7 @@ router.delete("/month/:monthlyId", async (req, res) => {
         await pool
             .request()
             .input("ID", sql.Int, monthlyId)
-            .query("DELETE FROM EmployeeShiftMonthly WHERE ID = @ID");
+            .query("DELETE FROM EmployeeShiftMonthly_New WHERE ID = @ID");
 
         res.json({ message: "Monthly shift record deleted successfully" });
     } catch (err) {
