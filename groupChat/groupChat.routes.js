@@ -151,9 +151,9 @@ router.post("/:groupId/messages", async (req, res) => {
             .input("senderId", sql.Int, senderId)
             .input("messageContent", sql.NVarChar(sql.MAX), messageContent)
             .query(`
-                INSERT INTO dbo.GroupChatMessage_Backup (GROUP_ID, SENDER_ID, MESSAGE_CONTENT)
+                INSERT INTO dbo.GroupChatMessage_Backup (GROUP_ID, SENDER_ID, MESSAGE_CONTENT, DATE_SENT)
                 OUTPUT INSERTED.ID
-                VALUES (@groupId, @senderId, @messageContent)
+                VALUES (@groupId, @senderId, @messageContent, GETDATE())
             `);
 
         const messageId = result.recordset[0].ID;

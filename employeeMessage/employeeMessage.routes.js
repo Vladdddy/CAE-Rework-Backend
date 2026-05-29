@@ -57,7 +57,10 @@ router.get("/:id", async (req, res) => {
 
         res.json(result.recordset[0]);
     } catch (err) {
-        console.error("Error in GET /employeeMessage/:id endpoint:", err.message);
+        console.error(
+            "Error in GET /employeeMessage/:id endpoint:",
+            err.message,
+        );
         res.status(500).json({ error: "Database error", details: err.message });
     }
 });
@@ -70,7 +73,8 @@ router.get("/user/:userId", async (req, res) => {
         if (!pool) {
             return res.status(503).json({ error: "Database not connected" });
         }
-        const result = await pool.request().input("userId", sql.Int, userId).query(`
+        const result = await pool.request().input("userId", sql.Int, userId)
+            .query(`
             SELECT
                 em.*,
                 sender.[User]   AS SenderUsername,
@@ -86,7 +90,10 @@ router.get("/user/:userId", async (req, res) => {
 
         res.json(result.recordset);
     } catch (err) {
-        console.error("Error in GET /employeeMessage/user/:userId endpoint:", err.message);
+        console.error(
+            "Error in GET /employeeMessage/user/:userId endpoint:",
+            err.message,
+        );
         res.status(500).json({ error: "Database error", details: err.message });
     }
 });
@@ -99,7 +106,8 @@ router.get("/sent/:userId", async (req, res) => {
         if (!pool) {
             return res.status(503).json({ error: "Database not connected" });
         }
-        const result = await pool.request().input("userId", sql.Int, userId).query(`
+        const result = await pool.request().input("userId", sql.Int, userId)
+            .query(`
             SELECT
                 em.*,
                 receiver.[User] AS ReceiverUsername,
@@ -112,7 +120,10 @@ router.get("/sent/:userId", async (req, res) => {
 
         res.json(result.recordset);
     } catch (err) {
-        console.error("Error in GET /employeeMessage/sent/:userId endpoint:", err.message);
+        console.error(
+            "Error in GET /employeeMessage/sent/:userId endpoint:",
+            err.message,
+        );
         res.status(500).json({ error: "Database error", details: err.message });
     }
 });
@@ -125,7 +136,8 @@ router.get("/received/:userId", async (req, res) => {
         if (!pool) {
             return res.status(503).json({ error: "Database not connected" });
         }
-        const result = await pool.request().input("userId", sql.Int, userId).query(`
+        const result = await pool.request().input("userId", sql.Int, userId)
+            .query(`
             SELECT
                 em.*,
                 sender.[User] AS SenderUsername,
@@ -138,7 +150,10 @@ router.get("/received/:userId", async (req, res) => {
 
         res.json(result.recordset);
     } catch (err) {
-        console.error("Error in GET /employeeMessage/received/:userId endpoint:", err.message);
+        console.error(
+            "Error in GET /employeeMessage/received/:userId endpoint:",
+            err.message,
+        );
         res.status(500).json({ error: "Database error", details: err.message });
     }
 });
@@ -151,7 +166,8 @@ router.get("/unread/count/:userId", async (req, res) => {
         if (!pool) {
             return res.status(503).json({ error: "Database not connected" });
         }
-        const result = await pool.request().input("userId", sql.Int, userId).query(`
+        const result = await pool.request().input("userId", sql.Int, userId)
+            .query(`
             SELECT COUNT(*) AS UnreadCount
             FROM dbo.EmployeeMessage_Backup
             WHERE RECEIVER_ID = @userId AND IS_READ = 0
@@ -159,7 +175,10 @@ router.get("/unread/count/:userId", async (req, res) => {
 
         res.json({ unreadCount: result.recordset[0].UnreadCount });
     } catch (err) {
-        console.error("Error in GET /employeeMessage/unread/count/:userId endpoint:", err.message);
+        console.error(
+            "Error in GET /employeeMessage/unread/count/:userId endpoint:",
+            err.message,
+        );
         res.status(500).json({ error: "Database error", details: err.message });
     }
 });
@@ -168,7 +187,9 @@ router.post("/", async (req, res) => {
     const { senderId, receiverId, messageContent } = req.body;
 
     if (!senderId || !receiverId) {
-        return res.status(400).json({ error: "Sender ID and Receiver ID are required" });
+        return res
+            .status(400)
+            .json({ error: "Sender ID and Receiver ID are required" });
     }
 
     try {
@@ -181,20 +202,34 @@ router.post("/", async (req, res) => {
         const senderCheck = await pool
             .request()
             .input("senderId", sql.Int, senderId)
-            .query(`SELECT Worker_ID FROM [SimOneDB].[dbo].[sv_login] WHERE Worker_ID = @senderId AND Active = 1`);
+            .query(
+                `SELECT Worker_ID FROM [SimOneDB].[dbo].[sv_login] WHERE Worker_ID = @senderId AND Active = 1`,
+            );
 
         if (senderCheck.recordset.length === 0) {
-            return res.status(404).json({ error: "Sender not found", details: `User with ID ${senderId} does not exist` });
+            return res
+                .status(404)
+                .json({
+                    error: "Sender not found",
+                    details: `User with ID ${senderId} does not exist`,
+                });
         }
 
         // Verify receiver exists in SimOneDB
         const receiverCheck = await pool
             .request()
             .input("receiverId", sql.Int, receiverId)
-            .query(`SELECT Worker_ID FROM [SimOneDB].[dbo].[sv_login] WHERE Worker_ID = @receiverId AND Active = 1`);
+            .query(
+                `SELECT Worker_ID FROM [SimOneDB].[dbo].[sv_login] WHERE Worker_ID = @receiverId AND Active = 1`,
+            );
 
         if (receiverCheck.recordset.length === 0) {
-            return res.status(404).json({ error: "Receiver not found", details: `User with ID ${receiverId} does not exist` });
+            return res
+                .status(404)
+                .json({
+                    error: "Receiver not found",
+                    details: `User with ID ${receiverId} does not exist`,
+                });
         }
 
         const result = await pool
@@ -203,12 +238,15 @@ router.post("/", async (req, res) => {
             .input("receiverId", sql.Int, receiverId)
             .input("messageContent", sql.NVarChar, messageContent || null)
             .query(`
-                INSERT INTO dbo.EmployeeMessage_Backup (SENDER_ID, RECEIVER_ID, MESSAGE_CONTENT)
+                INSERT INTO dbo.EmployeeMessage_Backup (SENDER_ID, RECEIVER_ID, MESSAGE_CONTENT, DATE_SENT)
                 OUTPUT INSERTED.ID
-                VALUES (@senderId, @receiverId, @messageContent)
+                VALUES (@senderId, @receiverId, @messageContent, GETDATE())
             `);
 
-        res.status(201).json({ message: "Message sent successfully", messageId: result.recordset[0].ID });
+        res.status(201).json({
+            message: "Message sent successfully",
+            messageId: result.recordset[0].ID,
+        });
     } catch (err) {
         console.error("Error creating message:", err.message);
         res.status(500).json({ error: "Database error", details: err.message });
@@ -253,13 +291,17 @@ router.put("/read-all/:userId", async (req, res) => {
             return res.status(503).json({ error: "Database not connected" });
         }
 
-        const result = await pool.request().input("userId", sql.Int, userId).query(`
+        const result = await pool.request().input("userId", sql.Int, userId)
+            .query(`
             UPDATE dbo.EmployeeMessage_Backup
             SET IS_READ = 1
             WHERE RECEIVER_ID = @userId AND IS_READ = 0
         `);
 
-        res.json({ message: "All messages marked as read", updatedCount: result.rowsAffected[0] });
+        res.json({
+            message: "All messages marked as read",
+            updatedCount: result.rowsAffected[0],
+        });
     } catch (err) {
         console.error("Error marking all messages as read:", err.message);
         res.status(500).json({ error: "Database error", details: err.message });
@@ -284,7 +326,10 @@ router.delete("/:id", async (req, res) => {
             return res.status(404).json({ error: "Message not found" });
         }
 
-        await pool.request().input("id", sql.Int, id).query(`DELETE FROM dbo.EmployeeMessage_Backup WHERE ID = @id`);
+        await pool
+            .request()
+            .input("id", sql.Int, id)
+            .query(`DELETE FROM dbo.EmployeeMessage_Backup WHERE ID = @id`);
 
         res.json({ message: "Message deleted successfully" });
     } catch (err) {
